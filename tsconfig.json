@@ -2,13 +2,14 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": ".",       // raíz del proyecto
-    "outDir": "dist",     // JS compilado aquí
+    "rootDir": ".",       // Project root, TypeScript files here
+    "outDir": "dist",     // Compiled JS output here
 
     // Environment Settings
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
+    "lib": ["esnext"],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -33,8 +34,8 @@
 
     // Recommended Options
     "strict": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
