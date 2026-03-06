@@ -14,6 +14,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:watch": "tsc --watch",
     "node:start": "node dist/server/index.js",
     "node:dev": "node --watch --loader ts-node/esm server/index.ts",
     "node:test": "node --test"
