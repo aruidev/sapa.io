@@ -1,5 +1,6 @@
 import express from "express";
 import { readFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,7 @@ import {
 } from "./types.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
+const HOST = process.env.HOST ?? "0.0.0.0";
 const TICK_RATE = 30;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
 
@@ -27,26 +29,23 @@ const projectRoot = path.resolve(__dirname, "..", "..");
 
 const tlsKeyPath = process.env.TLS_KEY_PATH;
 const tlsCertPath = process.env.TLS_CERT_PATH;
-
-if (!tlsKeyPath || !tlsCertPath) {
-	throw new Error(
-		"Missing TLS configuration. Set TLS_KEY_PATH and TLS_CERT_PATH to enable HTTPS/WSS.",
-	);
-}
-
-let tlsKey: Buffer;
-let tlsCert: Buffer;
-
-try {
-	tlsKey = readFileSync(tlsKeyPath);
-	tlsCert = readFileSync(tlsCertPath);
-} catch (error) {
-	const details = error instanceof Error ? error.message : "Unknown file read error";
-	throw new Error(`Failed to load TLS credentials: ${details}`);
-}
+const useTls = Boolean(tlsKeyPath && tlsCertPath);
 
 const app = express();
-const server = createServer({ key: tlsKey, cert: tlsCert }, app);
+const server = (() => {
+	if (!useTls) {
+		return createHttpServer(app);
+	}
+
+	try {
+		const tlsKey = readFileSync(tlsKeyPath as string);
+		const tlsCert = readFileSync(tlsCertPath as string);
+		return createServer({ key: tlsKey, cert: tlsCert }, app);
+	} catch (error) {
+		const details = error instanceof Error ? error.message : "Unknown file read error";
+		throw new Error(`Failed to load TLS credentials: ${details}`);
+	}
+})();
 const wss = new WebSocketServer({ server, path: "/game" });
 const engine = new GameEngine();
 
@@ -146,9 +145,11 @@ setInterval(() => {
 	broadcast(payload);
 }, TICK_INTERVAL_MS);
 
-server.listen(PORT, () => {
-	console.log(`Server listening on https://localhost:${PORT}`);
-	console.log(`WebSocket endpoint wss://localhost:${PORT}/game`);
+server.listen(PORT, HOST, () => {
+	const protocol = useTls ? "https" : "http";
+	const wsProtocol = useTls ? "wss" : "ws";
+	console.log(`Server listening on ${protocol}://${HOST}:${PORT}`);
+	console.log(`WebSocket endpoint ${wsProtocol}://${HOST}:${PORT}/game`);
 });
 
 function handleDisconnect(socket: WebSocket): void {
