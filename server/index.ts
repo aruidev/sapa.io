@@ -1,5 +1,6 @@
 import express from "express";
-import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { createServer } from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
@@ -24,8 +25,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..", "..");
 
+const tlsKeyPath = process.env.TLS_KEY_PATH;
+const tlsCertPath = process.env.TLS_CERT_PATH;
+
+if (!tlsKeyPath || !tlsCertPath) {
+	throw new Error(
+		"Missing TLS configuration. Set TLS_KEY_PATH and TLS_CERT_PATH to enable HTTPS/WSS.",
+	);
+}
+
+let tlsKey: Buffer;
+let tlsCert: Buffer;
+
+try {
+	tlsKey = readFileSync(tlsKeyPath);
+	tlsCert = readFileSync(tlsCertPath);
+} catch (error) {
+	const details = error instanceof Error ? error.message : "Unknown file read error";
+	throw new Error(`Failed to load TLS credentials: ${details}`);
+}
+
 const app = express();
-const server = createServer(app);
+const server = createServer({ key: tlsKey, cert: tlsCert }, app);
 const wss = new WebSocketServer({ server, path: "/game" });
 const engine = new GameEngine();
 
@@ -126,8 +147,8 @@ setInterval(() => {
 }, TICK_INTERVAL_MS);
 
 server.listen(PORT, () => {
-	console.log(`Server listening on http://localhost:${PORT}`);
-	console.log(`WebSocket endpoint ws://localhost:${PORT}/game`);
+	console.log(`Server listening on https://localhost:${PORT}`);
+	console.log(`WebSocket endpoint wss://localhost:${PORT}/game`);
 });
 
 function handleDisconnect(socket: WebSocket): void {

@@ -31,8 +31,11 @@ type ServerMessage =
   | { type: "pong"; timestamp: number; serverTime: number }
   | { type: "playerDisconnect"; playerId: string };
 
-const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-const ws = new WebSocket(`${wsProtocol}//${window.location.host}/game`);
+if (window.location.protocol !== "https:") {
+  throw new Error("This app requires HTTPS. WebSocket transport is WSS-only.");
+}
+
+const ws = new WebSocket(`wss://${window.location.host}/game`);
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderingContext = canvas.getContext("2d");

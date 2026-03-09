@@ -21,7 +21,7 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 
 ## Project structure
 
-- `server/index.ts`: HTTP + WebSocket server, sessions, message parsing/validation, tick loop.
+- `server/index.ts`: HTTPS + WebSocket server, sessions, message parsing/validation, tick loop.
 - `server/game.ts`: game engine (movement, collisions, growth, food respawn).
 - `server/types.ts`: message contracts and shared state types.
 - `client/main.ts`: WS connection, snapshot handling, mouse input, canvas rendering.
@@ -30,7 +30,7 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 
 ## How it works (summary)
 
-1. The client opens `ws://localhost:3000/game` (or `wss` over HTTPS).
+1. The client opens `wss://localhost:3000/game`.
 2. It sends `{ type: "join" }`.
 3. The server creates a player and replies with `joinAck` containing `playerId`, `bounds`, and initial state.
 4. The client sends `move` messages using mouse target coordinates in world space.
@@ -63,6 +63,7 @@ Server -> client:
 
 Requirements:
 - Node.js 20+ recommended
+- TLS certificate and key files (required, WSS-only)
 
 Install:
 
@@ -76,26 +77,36 @@ TypeScript build:
 npm run build
 ```
 
+Set TLS environment variables before starting the server:
+
+PowerShell:
+
+```powershell
+$env:TLS_KEY_PATH = "C:\\path\\to\\localhost-key.pem"
+$env:TLS_CERT_PATH = "C:\\path\\to\\localhost-cert.pem"
+```
+
 Start compiled server:
 
 ```bash
-npm run node:start
+npm run start
 ```
 
 Development mode (no manual build):
 
 ```bash
-npm run node:dev
+npm run dev
 ```
 
 Open in browser:
-- `http://localhost:3000`
+- `https://localhost:3000`
 
 Useful endpoint:
-- `GET /health` -> basic server status (`ok`, player count, current tick).
+- `GET /health` -> basic server status (`ok`, player count, current tick), available at `https://localhost:3000/health`.
 
 ## Notes
 
 - The server is authoritative: the real game state lives in the backend and the client only renders snapshots.
+- The app is WSS-only: if TLS vars are missing or the page is opened over HTTP, the game connection is intentionally blocked.
 - The client currently sends `move` on every `mousemove`; for scaling, throttling/rate limiting is recommended.
 
