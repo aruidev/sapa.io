@@ -29,7 +29,8 @@ const projectRoot = path.resolve(__dirname, "..", "..");
 
 const tlsKeyPath = process.env.TLS_KEY_PATH;
 const tlsCertPath = process.env.TLS_CERT_PATH;
-const useTls = Boolean(tlsKeyPath && tlsCertPath);
+const isRender = Boolean(process.env.RENDER);
+const useTls = !isRender && Boolean(tlsKeyPath && tlsCertPath);
 
 const app = express();
 const server = (() => {
