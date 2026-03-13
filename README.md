@@ -30,19 +30,24 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 - `server/session-manager.ts`: `SessionManager` for WebSocket session/player mapping and send/broadcast.
 - `server/types.ts`: message contracts and shared state types (consumed by server and client).
 - `server/utils.ts`: shared server utilities (e.g. ID generation).
-- `client/main.ts`: WS connection, snapshot handling, mouse input, canvas rendering.
+- `client/main.ts`: client bootstrap (HTTPS guard, canvas loop, server message handling, mouse -> move messages).
 - `client/index.html`: client entry point.
-- `client/styles.css`: base styles.
+- `client/styles.css`: base styles for menu/canvas.
+- `client/utils/network.ts`: `connectAndJoin` and WebSocket lifecycle handlers.
+- `client/utils/state.ts`: local client state (`players`, `food`, `bounds`, `myPlayerId`) + snapshot/update helpers.
+- `client/utils/render.ts`: world/player/food/HUD rendering and camera transform.
+- `client/utils/ui.ts`: menu wiring and start flow.
+- `client/utils/utils.ts`: shared client helpers (`clamp`, `screenToWorld`).
 
 ## How it works (summary)
 
 1. The client opens `wss://localhost:3000/game`.
-2. It sends `{ type: "join" }`.
+2. From the start menu, it sends `{ type: "join", name, color }`.
 3. The server creates a player and replies with `joinAck` containing `playerId`, `bounds`, and initial state.
 4. The client sends `move` messages using mouse target coordinates in world space.
 5. The server updates the world at `30 ticks/s` (`GameLoopCoordinator`) and broadcasts `gameState` to all clients.
-6. If a player is eliminated, the server sends `playerDead` to that player socket.
-7. If a player disconnects, the server emits `playerDisconnect`.
+6. If the local player is eliminated (`playerDead`), the client closes WS, resets local state, hides the canvas, and shows the menu again.
+7. If a player disconnects, the client removes it from local state via `playerDisconnect`.
 
 ## Core engine rules
 
@@ -55,7 +60,7 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 ## Message protocol
 
 Client -> server:
-- `join`
+- `join { name, color }`
 - `move { targetX, targetY }`
 - `ping { timestamp }`
 
@@ -116,5 +121,6 @@ Useful endpoint:
 
 - The server is authoritative: the real game state lives in the backend and the client only renders snapshots.
 - The app is WSS-only: if TLS vars are missing or the page is opened over HTTP, the game connection is intentionally blocked.
+- The client is split into small modules (`network`, `state`, `render`, `ui`, `utils`) to keep responsibilities isolated.
 - The client currently sends `move` on every `mousemove`; for scaling, throttling/rate limiting is recommended.
 
