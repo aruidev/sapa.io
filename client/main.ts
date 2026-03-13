@@ -36,13 +36,19 @@ function applySnapshot(state: GameState, worldBounds: WorldBounds): void {
 // --- Menú de inicio ---
 const menu = document.getElementById("menu") as HTMLDivElement;
 const startBtn = document.getElementById("startBtn") as HTMLButtonElement;
-const playerNameInput = document.getElementById("playerName") as HTMLInputElement;
-const playerColorInput = document.getElementById("playerColor") as HTMLInputElement;
+const playerNameInput = document.getElementById(
+  "playerName",
+) as HTMLInputElement;
+const playerColorInput = document.getElementById(
+  "playerColor",
+) as HTMLInputElement;
 
 let gameStarted = false;
 
 startBtn.addEventListener("click", () => {
-  alert("¡Bienvenido a Agar.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
+  alert(
+    "¡Bienvenido a Agar.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!",
+  );
   const name = playerNameInput.value.trim() || "Jugador";
   const color = playerColorInput.value;
   // Enviar datos al servidor
@@ -51,7 +57,7 @@ startBtn.addEventListener("click", () => {
       type: "join",
       name,
       color,
-    })
+    }),
   );
   // Ocultar menú y mostrar canvas
   menu.style.display = "none";
