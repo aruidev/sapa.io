@@ -23,7 +23,8 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 
 - `server/index.ts`: HTTPS + WebSocket server, sessions, message parsing/validation, tick loop.
 - `server/game.ts`: game engine (movement, collisions, growth, food respawn).
-- `server/types.ts`: message contracts and shared state types.
+- `server/types.ts`: message contracts and shared state types (consumed by server and client).
+- `server/utils.ts`: shared server utilities (e.g. ID generation).
 - `client/main.ts`: WS connection, snapshot handling, mouse input, canvas rendering.
 - `client/index.html`: client entry point.
 - `client/styles.css`: base styles.

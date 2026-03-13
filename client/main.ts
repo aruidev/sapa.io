@@ -1,35 +1,10 @@
-type Player = {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-};
-
-type Food = {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-};
-
-type WorldBounds = {
-  width: number;
-  height: number;
-};
-
-type GameState = {
-  players: Player[];
-  food: Food[];
-};
-
-type ServerMessage =
-  | { type: "joinAck"; playerId: string; bounds: WorldBounds; state: GameState }
-  | { type: "gameState"; tick: number; timestamp: number; bounds: WorldBounds; state: GameState }
-  | { type: "error"; message: string }
-  | { type: "pong"; timestamp: number; serverTime: number }
-  | { type: "playerDisconnect"; playerId: string };
+import type {
+  Food,
+  GameState,
+  Player,
+  ServerMessage,
+  WorldBounds,
+} from "../server/types.js";
 
 if (window.location.protocol !== "https:") {
   throw new Error("This app requires HTTPS. WebSocket transport is WSS-only.");
@@ -45,17 +20,28 @@ if (!renderingContext) {
 }
 
 const ctx = renderingContext;
+const TWO_PI = Math.PI * 2;
 
 let players: Player[] = [];
 let food: Food[] = [];
 let bounds: WorldBounds = { width: 3000, height: 3000 };
 let myPlayerId: string | null = null;
 
+function applySnapshot(state: GameState, worldBounds: WorldBounds): void {
+  players = state.players;
+  food = state.food;
+  bounds = worldBounds;
+}
+
 // --- Menú de inicio ---
 const menu = document.getElementById("menu") as HTMLDivElement;
 const startBtn = document.getElementById("startBtn") as HTMLButtonElement;
-const playerNameInput = document.getElementById("playerName") as HTMLInputElement;
-const playerColorInput = document.getElementById("playerColor") as HTMLInputElement;
+const playerNameInput = document.getElementById(
+  "playerName",
+) as HTMLInputElement;
+const playerColorInput = document.getElementById(
+  "playerColor",
+) as HTMLInputElement;
 
 let gameStarted = false;
 
@@ -144,8 +130,6 @@ function resizeCanvas(): void {
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-
-
 function draw(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -178,7 +162,7 @@ function drawWorldBackground(): void {
 function drawFood(): void {
   for (const item of food) {
     ctx.beginPath();
-    ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
+    ctx.arc(item.x, item.y, item.size, 0, TWO_PI);
     ctx.fillStyle = item.color;
     ctx.fill();
   }
@@ -187,7 +171,7 @@ function drawFood(): void {
 function drawPlayers(): void {
   for (const player of players) {
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, player.size, 0, TWO_PI);
     ctx.fillStyle = player.color || "lime";
     ctx.fill();
 
@@ -232,7 +216,10 @@ function getCameraPosition(me: Player | undefined): { x: number; y: number } {
   };
 }
 
-function screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
+function screenToWorld(
+  screenX: number,
+  screenY: number,
+): { x: number; y: number } {
   const camera = getCameraPosition(getLocalPlayer());
   return {
     x: clamp(screenX + camera.x, 0, bounds.width),
