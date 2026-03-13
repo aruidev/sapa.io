@@ -1,16 +1,36 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="UTF-8">
-<title>Sapa.io</title>
-<link rel="stylesheet" href="/client/styles.css">
+    <meta charset="UTF-8">
+    <title>Sapa.io</title>
+    <link rel="stylesheet" href="/client/styles.css">
 </head>
 
 <body>
 
-<canvas id="game"></canvas>
+    <div id="menu" class="menu">
+        <h2>¡Bienvenido a Sapa.io!</h2>
+        <label for="playerName">Nombre de tu bolita:</label>
+        <input type="text" id="playerName" placeholder="Nombre..." maxlength="16">
+        <br>
+        <label for="playerColor">Color:</label>
+        <input type="color" id="playerColor" value="#00ff00">
+        <br>
+        <button id="startBtn">Iniciar juego</button>
+    </div>
 
-<script type="module" src="../dist/client/main.js"></script>
+    <canvas id="game" style="display:none;"></canvas>
+
+    <!-- Menú de fin de partida -->
+    <div id="gameOverMenu"
+        style="display:none; flex-direction:column; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:10;">
+        <h2>¡Has perdido!</h2>
+        <button id="restartBtn">Volver al menú de inicio</button>
+    </div>
+
+    <script type="module" src="../dist/client/main.js"></script>
 
 </body>
+
 </html>
