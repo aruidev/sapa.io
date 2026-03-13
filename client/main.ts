@@ -51,6 +51,37 @@ let food: Food[] = [];
 let bounds: WorldBounds = { width: 3000, height: 3000 };
 let myPlayerId: string | null = null;
 
+// --- Menú de inicio ---
+const menu = document.getElementById("menu") as HTMLDivElement;
+const startBtn = document.getElementById("startBtn") as HTMLButtonElement;
+const playerNameInput = document.getElementById("playerName") as HTMLInputElement;
+const playerColorInput = document.getElementById("playerColor") as HTMLInputElement;
+
+let gameStarted = false;
+
+startBtn.addEventListener("click", () => {
+  alert("¡Bienvenido a Agar.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
+  const name = playerNameInput.value.trim() || "Jugador";
+  const color = playerColorInput.value;
+  // Enviar datos al servidor
+  ws.send(
+    JSON.stringify({
+      type: "join",
+      name,
+      color,
+    })
+  );
+  // Ocultar menú y mostrar canvas
+  menu.style.display = "none";
+  canvas.style.display = "block";
+  gameStarted = true;
+});
+
+// Al cargar, mostrar menú y ocultar canvas
+window.addEventListener("DOMContentLoaded", () => {
+  menu.style.display = "flex";
+  canvas.style.display = "none";
+});
 function resizeCanvas(): void {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;

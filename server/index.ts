@@ -85,7 +85,9 @@ wss.on("connection", (socket) => {
 			}
 
 			const playerId = createId("player");
-			engine.addPlayer(playerId);
+			const name = typeof message.name === "string" ? message.name : "Jugador";
+			const color = typeof message.color === "string" ? message.color : "#2ec4b6";
+			engine.addPlayer(playerId, name, color);
 			session.playerId = playerId;
 
 			const joinAck: JoinAckMessage = {
@@ -130,20 +132,29 @@ wss.on("connection", (socket) => {
 
 let lastTickTime = Date.now();
 setInterval(() => {
-	const now = Date.now();
-	const deltaMs = now - lastTickTime;
-	lastTickTime = now;
+       const now = Date.now();
+       const deltaMs = now - lastTickTime;
+       lastTickTime = now;
 
-	engine.update(deltaMs);
+       const eliminatedIds = engine.update(deltaMs);
 
-	const payload: GameStateMessage = {
-		type: "gameState",
-		tick: engine.getTick(),
-		timestamp: now,
-		bounds: engine.getBounds(),
-		state: engine.getState(),
-	};
-	broadcast(payload);
+       // Notifica a los jugadores eliminados
+       for (const id of eliminatedIds) {
+	       for (const [socket, session] of sessions.entries()) {
+		       if (session.playerId === id && socket.readyState === WebSocket.OPEN) {
+			       socket.send(JSON.stringify({ type: "playerDead", playerId: id }));
+		       }
+	       }
+       }
+
+       const payload: GameStateMessage = {
+	       type: "gameState",
+	       tick: engine.getTick(),
+	       timestamp: now,
+	       bounds: engine.getBounds(),
+	       state: engine.getState(),
+       };
+       broadcast(payload);
 }, TICK_INTERVAL_MS);
 
 server.listen(PORT, HOST, () => {
@@ -201,7 +212,9 @@ function parseClientMessage(raw: string): ClientMessage | null {
 	}
 
 	if (parsed.type === "join") {
-		return { type: "join" };
+		const name = typeof parsed.name === "string" ? parsed.name : "Jugador";
+		const color = typeof parsed.color === "string" ? parsed.color : "#2ec4b6";
+		return { type: "join", name, color };
 	}
 
 	if (

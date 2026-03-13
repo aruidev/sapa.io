@@ -40,20 +40,22 @@ export class GameEngine {
 		return this.tick;
 	}
 
-	addPlayer(id: string): Player {
+	 addPlayer(id: string, name: string, color: string): Player {
 		const spawn = this.findSpawnPoint(PLAYER_INITIAL_SIZE);
 		const player: Player = {
 			id,
 			x: spawn.x,
 			y: spawn.y,
 			size: PLAYER_INITIAL_SIZE,
-			color: pickRandom(PLAYER_COLORS),
+			color,
+			// @ts-ignore: name no está en Player, pero lo agregamos para mostrarlo
+			name,
 		};
 
 		this.players.set(id, player);
 		this.playerTargets.set(id, { x: player.x, y: player.y });
 		return { ...player };
-	}
+	 }
 
 	removePlayer(id: string): boolean {
 		this.playerTargets.delete(id);
@@ -71,15 +73,16 @@ export class GameEngine {
 		});
 	}
 
-	update(deltaMs: number): void {
-		this.tick += 1;
-		const deltaSeconds = Math.max(0, deltaMs / 1000);
+	       update(deltaMs: number): string[] {
+		       this.tick += 1;
+		       const deltaSeconds = Math.max(0, deltaMs / 1000);
 
-		this.movePlayers(deltaSeconds);
-		this.resolveFoodCollisions();
-		this.resolvePlayerCollisions();
-		this.replenishFood();
-	}
+		       this.movePlayers(deltaSeconds);
+		       this.resolveFoodCollisions();
+		       const eliminated = this.resolvePlayerCollisions();
+		       this.replenishFood();
+		       return eliminated;
+	       }
 
 	getState(): GameState {
 		return {
@@ -127,43 +130,44 @@ export class GameEngine {
 		}
 	}
 
-	private resolvePlayerCollisions(): void {
-		const players = [...this.players.values()];
-		const consumed = new Set<string>();
+	       private resolvePlayerCollisions(): string[] {
+		       const players = [...this.players.values()];
+		       const consumed = new Set<string>();
 
-		for (let i = 0; i < players.length; i += 1) {
-			const a = players[i];
-			if (!a || consumed.has(a.id)) {
-				continue;
-			}
+		       for (let i = 0; i < players.length; i += 1) {
+			       const a = players[i];
+			       if (!a || consumed.has(a.id)) {
+				       continue;
+			       }
 
-			for (let j = i + 1; j < players.length; j += 1) {
-				const b = players[j];
-				if (!b || consumed.has(b.id)) {
-					continue;
-				}
+			       for (let j = i + 1; j < players.length; j += 1) {
+				       const b = players[j];
+				       if (!b || consumed.has(b.id)) {
+					       continue;
+				       }
 
-				const eater = a.size >= b.size ? a : b;
-				const prey = eater.id === a.id ? b : a;
+				       const eater = a.size >= b.size ? a : b;
+				       const prey = eater.id === a.id ? b : a;
 
-				if (eater.size < prey.size * PLAYER_EAT_MULTIPLIER) {
-					continue;
-				}
+				       if (eater.size < prey.size * PLAYER_EAT_MULTIPLIER) {
+					       continue;
+				       }
 
-				if (!canConsume(eater, prey)) {
-					continue;
-				}
+				       if (!canConsume(eater, prey)) {
+					       continue;
+				       }
 
-				eater.size = growRadius(eater.size, prey.size * 0.85);
-				consumed.add(prey.id);
-			}
-		}
+				       eater.size = growRadius(eater.size, prey.size * 0.85);
+				       consumed.add(prey.id);
+			       }
+		       }
 
-		for (const playerId of consumed) {
-			this.players.delete(playerId);
-			this.playerTargets.delete(playerId);
-		}
-	}
+		       for (const playerId of consumed) {
+			       this.players.delete(playerId);
+			       this.playerTargets.delete(playerId);
+		       }
+		       return Array.from(consumed);
+	       }
 
 	private replenishFood(): void {
 		while (this.food.size < FOOD_TARGET_COUNT) {
