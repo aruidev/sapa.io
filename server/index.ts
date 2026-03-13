@@ -136,16 +136,47 @@ setInterval(() => {
        const deltaMs = now - lastTickTime;
        lastTickTime = now;
 
-       const eliminatedIds = engine.update(deltaMs);
+	       // engine.update returns eliminated player IDs
+	       const eliminatedIds = engine.update(deltaMs);
 
-       // Notifica a los jugadores eliminados
-       for (const id of eliminatedIds) {
-	       for (const [socket, session] of sessions.entries()) {
-		       if (session.playerId === id && socket.readyState === WebSocket.OPEN) {
-			       socket.send(JSON.stringify({ type: "playerDead", playerId: id }));
+	       // Notifica a los jugadores eliminados con killer info
+	       for (const id of eliminatedIds) {
+		       // Buscar quién eliminó a este jugador
+		       let killerId = null;
+		       let killerName = null;
+		       let killerColor = null;
+		       // Buscar en el estado actual quién es el killer
+		       // El killer es el jugador más grande que está cerca del eliminado
+		       const state = engine.getState();
+		       const eliminatedPlayer = state.players.find(p => p.id === id);
+		       if (eliminatedPlayer) {
+			       // Buscar el jugador más cercano que sea más grande
+			       let minDist = Infinity;
+			       for (const p of state.players) {
+				       if (p.id === id) continue;
+				       if (p.size > eliminatedPlayer.size) {
+					       const dist = Math.hypot(p.x - eliminatedPlayer.x, p.y - eliminatedPlayer.y);
+					       if (dist < minDist) {
+						       minDist = dist;
+						       killerId = p.id;
+						       killerName = p.name || "";
+						       killerColor = p.color || "#2ec4b6";
+					       }
+				       }
+			       }
+		       }
+		       for (const [socket, session] of sessions.entries()) {
+			       if (session.playerId === id && socket.readyState === WebSocket.OPEN) {
+				       socket.send(JSON.stringify({
+					       type: "playerDead",
+					       playerId: id,
+					       killerId,
+					       killerName,
+					       killerColor
+				       }));
+			       }
 		       }
 	       }
-       }
 
        const payload: GameStateMessage = {
 	       type: "gameState",

@@ -4,6 +4,7 @@ export interface Player {
     y: number;
     size: number;
     color: string;
+    name: string;
 }
 
 export interface Food {
