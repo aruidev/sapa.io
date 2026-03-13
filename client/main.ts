@@ -1,6 +1,6 @@
 // main.ts
-// Main entry point for the client application, handling WebSocket communication, game state management, rendering, and user input for controlling the player character. 
-// It sets up the canvas, manages the game loop, and processes messages from the server to update the game state accordingly. 
+// Main entry point for the client application, handling WebSocket communication, game state management, rendering, and user input for controlling the player character.
+// It sets up the canvas, manages the game loop, and processes messages from the server to update the game state accordingly.
 // It also includes event listeners for resizing the canvas and handling mouse movement to control player movement in the game world.
 
 import type { ServerMessage, Player } from "../server/types.js";
@@ -68,7 +68,7 @@ function getCameraPosition(me: Player | undefined): { x: number; y: number } {
 
 /**
  * Function to handle incoming messages from the server.
- * Updating the local game state based on the message type (e.g., join acknowledgment, game state updates, player disconnections, and player deaths). 
+ * Updating the local game state based on the message type (e.g., join acknowledgment, game state updates, player disconnections, and player deaths).
  * It also handles errors by logging them to the console.
  * @param data incoming message data from the server
  * @returns void
@@ -114,7 +114,7 @@ resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 /**
- * Function to continuously render the game state on the canvas using requestAnimationFrame for smooth animations. 
+ * Function to continuously render the game state on the canvas using requestAnimationFrame for smooth animations.
  */
 function renderLoop(): void {
   draw(ctx, canvas);
@@ -129,7 +129,12 @@ canvas.addEventListener("mousemove", (event: MouseEvent) => {
 
   const me = getLocalPlayer();
   const camera = getCameraPosition(me);
-  const worldTarget = screenToWorld(event.clientX, event.clientY, camera, bounds);
+  const worldTarget = screenToWorld(
+    event.clientX,
+    event.clientY,
+    camera,
+    bounds,
+  );
 
   ws.send(
     JSON.stringify({

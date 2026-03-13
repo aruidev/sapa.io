@@ -5,6 +5,7 @@ Multiplayer agar.io-style (2D) game built with TypeScript and WebSockets.
 ## What this project is
 
 `sapa.io` is a simple real-time game prototype:
+
 - Each player controls a cell/circle.
 - Eating food increases your size.
 - A larger player can consume a smaller one if the size advantage rule is met.
@@ -60,11 +61,13 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 ## Message protocol
 
 Client -> server:
+
 - `join { name, color }`
 - `move { targetX, targetY }`
 - `ping { timestamp }`
 
 Server -> client:
+
 - `joinAck { playerId, bounds, state }`
 - `gameState { tick, timestamp, bounds, state }`
 - `playerDead { playerId, killerId, killerName, killerColor }`
@@ -75,6 +78,7 @@ Server -> client:
 ## Run locally
 
 Requirements:
+
 - Node.js 20+ recommended
 - TLS certificate and key files (required, WSS-only)
 
@@ -112,9 +116,11 @@ npm run dev
 ```
 
 Open in browser:
+
 - `https://localhost:3000`
 
 Useful endpoint:
+
 - `GET /health` -> basic server status (`ok`, player count, current tick), available at `https://localhost:3000/health`.
 
 ## Notes
@@ -123,4 +129,3 @@ Useful endpoint:
 - The app is WSS-only: if TLS vars are missing or the page is opened over HTTP, the game connection is intentionally blocked.
 - The client is split into small modules (`network`, `state`, `render`, `ui`, `utils`) to keep responsibilities isolated.
 - The client currently sends `move` on every `mousemove`; for scaling, throttling/rate limiting is recommended.
-

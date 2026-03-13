@@ -1,10 +1,10 @@
 export interface Player {
-    id: string;
-    x: number;
-    y: number;
-    size: number;
-    color: string;
-    name: string;
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  name: string;
 }
 
 export interface Food {

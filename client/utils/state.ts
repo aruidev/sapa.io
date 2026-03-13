@@ -13,7 +13,10 @@ export let myPlayerId: string | null = null;
  * @param state the game state snapshot containing the current players and food arrays
  * @param worldBounds the current world bounds to update the local state with
  */
-export function applySnapshot(state: { players: Player[]; food: Food[] }, worldBounds: WorldBounds): void {
+export function applySnapshot(
+  state: { players: Player[]; food: Food[] },
+  worldBounds: WorldBounds,
+): void {
   players = state.players;
   food = state.food;
   bounds = worldBounds;
