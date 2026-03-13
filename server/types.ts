@@ -26,6 +26,8 @@ export interface WorldBounds {
 
 export interface JoinMessage {
     type: "join";
+    name: string;
+    color: string;
 }
 
 export interface MoveMessage {
