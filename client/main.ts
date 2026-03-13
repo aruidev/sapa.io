@@ -10,7 +10,7 @@ if (window.location.protocol !== "https:") {
   throw new Error("This app requires HTTPS. WebSocket transport is WSS-only.");
 }
 
-const ws = new WebSocket(`wss://${window.location.host}/game`);
+let ws: WebSocket | null = null;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderingContext = canvas.getContext("2d");
@@ -45,21 +45,73 @@ const playerColorInput = document.getElementById(
 
 let gameStarted = false;
 
+
+function connectAndJoin(name: string, color: string) {
+  ws = new WebSocket(`wss://${window.location.host}/game`);
+
+  ws.addEventListener("open", () => {
+    ws!.send(JSON.stringify({ type: "join", name, color }));
+  });
+
+  ws.addEventListener("message", (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "joinAck") {
+      myPlayerId = data.playerId;
+      players = data.state.players;
+      food = data.state.food;
+      bounds = data.bounds;
+      return;
+    }
+
+    if (data.type === "gameState") {
+      players = data.state.players;
+      food = data.state.food;
+      bounds = data.bounds;
+      return;
+    }
+
+    if (data.type === "playerDisconnect") {
+      players = players.filter((player) => player.id !== data.playerId);
+      if (data.playerId === myPlayerId) {
+        myPlayerId = null;
+      }
+      return;
+    }
+
+    if (data.type === "playerDead") {
+      // Al morir, mostrar menú de inicio y limpiar estado
+      ws?.close();
+      canvas.style.display = "none";
+      menu.style.display = "flex";
+      myPlayerId = null;
+      players = [];
+      food = [];
+      bounds = { width: 3000, height: 3000 };
+      gameStarted = false;
+      alert("¡Has muerto! Puedes elegir nombre y color para volver a jugar.");
+      return;
+    }
+
+    if (data.type === "error") {
+      console.error("Server error:", data.message);
+    }
+  });
+
+  ws.addEventListener("close", () => {
+    console.warn("WebSocket connection closed.");
+  });
+
+  ws.addEventListener("error", (event) => {
+    console.error("WebSocket error:", event);
+  });
+}
+
 startBtn.addEventListener("click", () => {
-  alert(
-    "¡Bienvenido a Agar.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!",
-  );
+  alert("¡Bienvenido a Sapa.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
   const name = playerNameInput.value.trim() || "Jugador";
   const color = playerColorInput.value;
-  // Enviar datos al servidor
-  ws.send(
-    JSON.stringify({
-      type: "join",
-      name,
-      color,
-    }),
-  );
-  // Ocultar menú y mostrar canvas
+  connectAndJoin(name, color);
   menu.style.display = "none";
   canvas.style.display = "block";
   gameStarted = true;
@@ -77,45 +129,6 @@ function resizeCanvas(): void {
 
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
-
-ws.addEventListener("open", () => {
-  ws.send(JSON.stringify({ type: "join" }));
-});
-
-ws.addEventListener("message", (event) => {
-  const data = JSON.parse(event.data) as ServerMessage;
-
-  if (data.type === "joinAck") {
-    myPlayerId = data.playerId;
-    applySnapshot(data.state, data.bounds);
-    return;
-  }
-
-  if (data.type === "gameState") {
-    applySnapshot(data.state, data.bounds);
-    return;
-  }
-
-  if (data.type === "playerDisconnect") {
-    players = players.filter((player) => player.id !== data.playerId);
-    if (data.playerId === myPlayerId) {
-      myPlayerId = null;
-    }
-    return;
-  }
-
-  if (data.type === "error") {
-    console.error("Server error:", data.message);
-  }
-});
-
-ws.addEventListener("close", () => {
-  console.warn("WebSocket connection closed.");
-});
-
-ws.addEventListener("error", (event) => {
-  console.error("WebSocket error:", event);
-});
 
 function draw(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -221,7 +234,7 @@ function clamp(value: number, min: number, max: number): number {
 draw();
 
 canvas.addEventListener("mousemove", (event) => {
-  if (ws.readyState !== WebSocket.OPEN) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
     return;
   }
 
