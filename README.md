@@ -21,8 +21,13 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 
 ## Project structure
 
-- `server/index.ts`: HTTPS + WebSocket server, sessions, message parsing/validation, tick loop.
-- `server/game.ts`: game engine (movement, collisions, growth, food respawn).
+- `server/index.ts`: composition/bootstrap (Express + HTTP/HTTPS + WebSocket wiring).
+- `server/game.ts`: `GameEngine` (movement, collisions, growth, food respawn).
+- `server/game-config.ts`: centralized gameplay configuration object (`gameConfig`).
+- `server/game-physics.ts`: shared math/collision helpers for the engine.
+- `server/game-loop.ts`: `GameLoopCoordinator` (tick scheduling, eliminations, state broadcast).
+- `server/message-handler.ts`: `ClientMessageParser` + `MessageRouter` for client message handling.
+- `server/session-manager.ts`: `SessionManager` for WebSocket session/player mapping and send/broadcast.
 - `server/types.ts`: message contracts and shared state types (consumed by server and client).
 - `server/utils.ts`: shared server utilities (e.g. ID generation).
 - `client/main.ts`: WS connection, snapshot handling, mouse input, canvas rendering.
@@ -35,16 +40,17 @@ The main goal is to demonstrate a minimal client-server architecture for multipl
 2. It sends `{ type: "join" }`.
 3. The server creates a player and replies with `joinAck` containing `playerId`, `bounds`, and initial state.
 4. The client sends `move` messages using mouse target coordinates in world space.
-5. The server updates the world at `30 ticks/s` and broadcasts `gameState` to all clients.
-6. If a player disconnects, the server emits `playerDisconnect`.
+5. The server updates the world at `30 ticks/s` (`GameLoopCoordinator`) and broadcasts `gameState` to all clients.
+6. If a player is eliminated, the server sends `playerDead` to that player socket.
+7. If a player disconnects, the server emits `playerDisconnect`.
 
 ## Core engine rules
 
-- World: `3000 x 3000`.
+- World: `3000 x 3000` (from `gameConfig.bounds`).
 - Target food count: `250` entities (auto-replenished).
 - Player initial size: `24`.
 - Speed: decreases as size grows (with a configurable minimum).
-- Player-vs-player consume rule: requires size advantage (`PLAYER_EAT_MULTIPLIER`).
+- Player-vs-player consume rule: requires size advantage (`gameConfig.player.eatMultiplier`).
 
 ## Message protocol
 
@@ -56,6 +62,7 @@ Client -> server:
 Server -> client:
 - `joinAck { playerId, bounds, state }`
 - `gameState { tick, timestamp, bounds, state }`
+- `playerDead { playerId, killerId, killerName, killerColor }`
 - `playerDisconnect { playerId }`
 - `pong { timestamp, serverTime }`
 - `error { message }`
