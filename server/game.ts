@@ -1,4 +1,5 @@
 import { Food, GameState, Player, WorldBounds } from "./types.js";
+import { createId } from "./utils.js";
 
 interface PlayerTarget {
 	x: number;
@@ -224,8 +225,4 @@ function randomBetween(min: number, max: number): number {
 
 function pickRandom<T>(values: T[]): T {
 	return values[Math.floor(Math.random() * values.length)] as T;
-}
-
-function createId(prefix: string): string {
-	return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }

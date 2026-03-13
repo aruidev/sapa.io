@@ -24,13 +24,6 @@ export interface WorldBounds {
     height: number;
 }
 
-export interface GameSnapshot {
-    tick: number;
-    timestamp: number;
-    bounds: WorldBounds;
-    state: GameState;
-}
-
 export interface JoinMessage {
     type: "join";
 }

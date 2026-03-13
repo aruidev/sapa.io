@@ -17,6 +17,7 @@ import {
 	PongMessage,
 	ServerMessage,
 } from "./types.js";
+import { createId } from "./utils.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -227,8 +228,4 @@ function parseClientMessage(raw: string): ClientMessage | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
-}
-
-function createId(prefix: string): string {
-	return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
