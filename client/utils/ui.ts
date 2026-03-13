@@ -8,12 +8,18 @@
 export function setupUI(connectAndJoin: (name: string, color: string) => void) {
   const menu = document.getElementById("menu") as HTMLDivElement;
   const startBtn = document.getElementById("startBtn") as HTMLButtonElement;
-  const playerNameInput = document.getElementById("playerName") as HTMLInputElement;
-  const playerColorInput = document.getElementById("playerColor") as HTMLInputElement;
+  const playerNameInput = document.getElementById(
+    "playerName",
+  ) as HTMLInputElement;
+  const playerColorInput = document.getElementById(
+    "playerColor",
+  ) as HTMLInputElement;
   const canvas = document.getElementById("game") as HTMLCanvasElement;
 
   startBtn.addEventListener("click", () => {
-    alert("¡Bienvenido a Sapa.io! Usa el mouse para moverte y comer comida para crecer. Evita a otros jugadores más grandes que tú. ¡Diviértete jugando!");
+    alert(
+      "¡Bienvenido a Sapa.io! Usa el mouse para moverte y comer comida para crecer. Evita a otros jugadores más grandes que tú. ¡Diviértete jugando!",
+    );
     const name = playerNameInput.value.trim() || "Jugador";
     const color = playerColorInput.value;
     connectAndJoin(name, color);

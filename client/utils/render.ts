@@ -1,6 +1,6 @@
 // render.ts
-// Drawing functions and rendering logic for the game, including drawing the world background, food items, players, and heads-up display (HUD) with player information and total player count. 
-// Also includes camera calculations to center the view on the local player while keeping within world bounds.  
+// Drawing functions and rendering logic for the game, including drawing the world background, food items, players, and heads-up display (HUD) with player information and total player count.
+// Also includes camera calculations to center the view on the local player while keeping within world bounds.
 
 import { players, food, bounds, getLocalPlayer } from "./state.js";
 
@@ -53,7 +53,7 @@ function drawFood(ctx: CanvasRenderingContext2D) {
 }
 
 /**
- * Function to draw the players in the game, including their circles and colors. 
+ * Function to draw the players in the game, including their circles and colors.
  * @param ctx canvas rendering context
  */
 function drawPlayers(ctx: CanvasRenderingContext2D) {
@@ -71,7 +71,11 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
  * @param me the local player object to display size information
  * @param canvas the canvas element to get dimensions for positioning the HUD
  */
-function drawHud(ctx: CanvasRenderingContext2D, me: any, canvas: HTMLCanvasElement) {
+function drawHud(
+  ctx: CanvasRenderingContext2D,
+  me: any,
+  canvas: HTMLCanvasElement,
+) {
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
   ctx.fillRect(12, 12, 190, 50);
   ctx.fillStyle = "#fff";

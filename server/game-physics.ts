@@ -44,7 +44,7 @@ export function distanceBetween(
  * @param value number - The value to be clamped.
  * @param min number - The minimum allowed value.
  * @param max number - The maximum allowed value.
- * @returns 
+ * @returns
  */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));

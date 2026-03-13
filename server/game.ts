@@ -225,7 +225,10 @@ export class GameEngine {
    */
   private replenishFood(): void {
     while (this.food.size < gameConfig.food.targetCount) {
-      const size = randomBetween(gameConfig.food.sizeMin, gameConfig.food.sizeMax);
+      const size = randomBetween(
+        gameConfig.food.sizeMin,
+        gameConfig.food.sizeMax,
+      );
       const position = this.findSpawnPoint(size);
       const item: Food = {
         id: createId("food"),
@@ -240,11 +243,15 @@ export class GameEngine {
 
   /**
    * Finds a valid spawn point for a new food item, ensuring it does not overlap with any existing players.
-   * @param size number - The size of the food item to be spawned, which is used to determine the minimum distance from players to avoid overlap. 
+   * @param size number - The size of the food item to be spawned, which is used to determine the minimum distance from players to avoid overlap.
    * @returns { x: number; y: number } - The coordinates of the valid spawn point.
    */
   private findSpawnPoint(size: number): { x: number; y: number } {
-    for (let attempts = 0; attempts < gameConfig.spawn.maxRespawnAttempts; attempts += 1) {
+    for (
+      let attempts = 0;
+      attempts < gameConfig.spawn.maxRespawnAttempts;
+      attempts += 1
+    ) {
       const x = randomBetween(size, this.bounds.width - size);
       const y = randomBetween(size, this.bounds.height - size);
 

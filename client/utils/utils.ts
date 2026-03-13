@@ -20,7 +20,12 @@ export function clamp(value: number, min: number, max: number): number {
  * @param bounds the world bounds with width and height properties to ensure the resulting coordinates are within limits
  * @returns an object containing the x and y world coordinates corresponding to the given screen coordinates
  */
-export function screenToWorld(screenX: number, screenY: number, camera: { x: number; y: number }, bounds: { width: number; height: number }) {
+export function screenToWorld(
+  screenX: number,
+  screenY: number,
+  camera: { x: number; y: number },
+  bounds: { width: number; height: number },
+) {
   return {
     x: clamp(screenX + camera.x, 0, bounds.width),
     y: clamp(screenY + camera.y, 0, bounds.height),
