@@ -13,6 +13,7 @@ export function setupUI(connectAndJoin: (name: string, color: string) => void) {
   const canvas = document.getElementById("game") as HTMLCanvasElement;
 
   startBtn.addEventListener("click", () => {
+    alert("¡Bienvenido a Sapa.io! Usa el mouse para moverte y comer comida para crecer. Evita a otros jugadores más grandes que tú. ¡Diviértete jugando!");
     const name = playerNameInput.value.trim() || "Jugador";
     const color = playerColorInput.value;
     connectAndJoin(name, color);
