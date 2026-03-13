@@ -122,7 +122,7 @@ function connectAndJoin(name: string, color: string) {
 }
 
 startBtn.addEventListener("click", () => {
-  alert("¡Bienvenido a Agar.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
+  alert("¡Bienvenido a Sapa.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
   const name = playerNameInput.value.trim() || "Jugador";
   const color = playerColorInput.value;
   connectAndJoin(name, color);
