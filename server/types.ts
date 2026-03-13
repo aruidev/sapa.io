@@ -64,6 +64,14 @@ export interface PlayerDisconnectMessage {
   playerId: string;
 }
 
+export interface PlayerDeadMessage {
+  type: "playerDead";
+  playerId: string;
+  killerId: string | null;
+  killerName: string | null;
+  killerColor: string | null;
+}
+
 export interface PongMessage {
   type: "pong";
   timestamp: number;
@@ -79,5 +87,6 @@ export type ServerMessage =
   | JoinAckMessage
   | GameStateMessage
   | PlayerDisconnectMessage
+  | PlayerDeadMessage
   | PongMessage
   | ErrorMessage;

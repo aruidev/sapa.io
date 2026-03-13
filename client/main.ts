@@ -1,16 +1,32 @@
-import type {
-  Food,
-  GameState,
-  Player,
-  ServerMessage,
-  WorldBounds,
-} from "../server/types.js";
+// main.ts
+// Main entry point for the client application, handling WebSocket communication, game state management, rendering, and user input for controlling the player character. 
+// It sets up the canvas, manages the game loop, and processes messages from the server to update the game state accordingly. 
+// It also includes event listeners for resizing the canvas and handling mouse movement to control player movement in the game world.
+
+import type { ServerMessage, Player } from "../server/types.js";
+import { connectAndJoin, ws } from "./utils/network.js";
+import {
+  bounds,
+  applySnapshot,
+  getLocalPlayer,
+  setMyPlayerId,
+  removePlayerById,
+  resetState,
+} from "./utils/state.js";
+import { draw } from "./utils/render.js";
+import { setupUI } from "./utils/ui.js";
+import { clamp, screenToWorld } from "./utils/utils.js";
+
+type PlayerDeadMessage = {
+  type: "playerDead";
+  playerId: string;
+};
+
+type IncomingMessage = ServerMessage | PlayerDeadMessage;
 
 if (window.location.protocol !== "https:") {
   throw new Error("This app requires HTTPS. WebSocket transport is WSS-only.");
 }
-
-let ws: WebSocket | null = null;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderingContext = canvas.getContext("2d");
@@ -20,187 +36,21 @@ if (!renderingContext) {
 }
 
 const ctx = renderingContext;
-const TWO_PI = Math.PI * 2;
-
-let players: Player[] = [];
-let food: Food[] = [];
-let bounds: WorldBounds = { width: 3000, height: 3000 };
-let myPlayerId: string | null = null;
-
-function applySnapshot(state: GameState, worldBounds: WorldBounds): void {
-  players = state.players;
-  food = state.food;
-  bounds = worldBounds;
-}
-
-// --- Menú de inicio ---
 const menu = document.getElementById("menu") as HTMLDivElement;
-const startBtn = document.getElementById("startBtn") as HTMLButtonElement;
-const playerNameInput = document.getElementById(
-  "playerName",
-) as HTMLInputElement;
-const playerColorInput = document.getElementById(
-  "playerColor",
-) as HTMLInputElement;
 
-let gameStarted = false;
-
-
-function connectAndJoin(name: string, color: string) {
-  ws = new WebSocket(`wss://${window.location.host}/game`);
-
-  ws.addEventListener("open", () => {
-    ws!.send(JSON.stringify({ type: "join", name, color }));
-  });
-
-  ws.addEventListener("message", (event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.type === "joinAck") {
-      myPlayerId = data.playerId;
-      players = data.state.players;
-      food = data.state.food;
-      bounds = data.bounds;
-      return;
-    }
-
-    if (data.type === "gameState") {
-      players = data.state.players;
-      food = data.state.food;
-      bounds = data.bounds;
-      return;
-    }
-
-    if (data.type === "playerDisconnect") {
-      players = players.filter((player) => player.id !== data.playerId);
-      if (data.playerId === myPlayerId) {
-        myPlayerId = null;
-      }
-      return;
-    }
-
-    if (data.type === "playerDead") {
-      // Al morir, mostrar menú de inicio y limpiar estado
-      ws?.close();
-      canvas.style.display = "none";
-      menu.style.display = "flex";
-      myPlayerId = null;
-      players = [];
-      food = [];
-      bounds = { width: 3000, height: 3000 };
-      gameStarted = false;
-      alert("¡Has muerto! Puedes elegir nombre y color para volver a jugar.");
-      return;
-    }
-
-    if (data.type === "error") {
-      console.error("Server error:", data.message);
-    }
-  });
-
-  ws.addEventListener("close", () => {
-    console.warn("WebSocket connection closed.");
-  });
-
-  ws.addEventListener("error", (event) => {
-    console.error("WebSocket error:", event);
-  });
-}
-
-startBtn.addEventListener("click", () => {
-  alert("¡Bienvenido a Sapa.io! Usa el mouse para moverte. Come la comida y otros jugadores para crecer. ¡Diviértete!");
-  const name = playerNameInput.value.trim() || "Jugador";
-  const color = playerColorInput.value;
-  connectAndJoin(name, color);
-  menu.style.display = "none";
-  canvas.style.display = "block";
-  gameStarted = true;
-});
-
-// Al cargar, mostrar menú y ocultar canvas
-window.addEventListener("DOMContentLoaded", () => {
-  menu.style.display = "flex";
-  canvas.style.display = "none";
-});
+/**
+ * Function to resize the canvas to fill the entire browser window.
+ */
 function resizeCanvas(): void {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
 
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
-
-function draw(): void {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const me = getLocalPlayer();
-  const camera = getCameraPosition(me);
-
-  ctx.save();
-  ctx.translate(-camera.x, -camera.y);
-
-  drawWorldBackground();
-  drawFood();
-  drawPlayers();
-
-  ctx.restore();
-
-  drawHud(me);
-
-  requestAnimationFrame(draw);
-}
-
-function drawWorldBackground(): void {
-  ctx.fillStyle = "#111";
-  ctx.fillRect(0, 0, bounds.width, bounds.height);
-
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(0, 0, bounds.width, bounds.height);
-}
-
-function drawFood(): void {
-  for (const item of food) {
-    ctx.beginPath();
-    ctx.arc(item.x, item.y, item.size, 0, TWO_PI);
-    ctx.fillStyle = item.color;
-    ctx.fill();
-  }
-}
-
-function drawPlayers(): void {
-  for (const player of players) {
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.size, 0, TWO_PI);
-    ctx.fillStyle = player.color || "lime";
-    ctx.fill();
-
-    if (player.id === myPlayerId) {
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#ffffff";
-      ctx.stroke();
-    }
-  }
-}
-
-function drawHud(me: Player | undefined): void {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(12, 12, 190, 50);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "16px monospace";
-  const sizeText = me ? me.size.toFixed(1) : "--";
-  ctx.fillText(`Size: ${sizeText}`, 22, 33);
-  ctx.fillText(`Players: ${players.length}`, 22, 53);
-}
-
-function getLocalPlayer(): Player | undefined {
-  if (!myPlayerId) {
-    return undefined;
-  }
-
-  return players.find((player) => player.id === myPlayerId);
-}
+/**
+ * Function to calculate the camera position based on the local player's position, ensuring the camera stays within world bounds.
+ * @param me the local player object to center the camera on
+ * @returns the x and y coordinates for the camera position
+ */
 
 function getCameraPosition(me: Player | undefined): { x: number; y: number } {
   if (!me) {
@@ -216,29 +66,70 @@ function getCameraPosition(me: Player | undefined): { x: number; y: number } {
   };
 }
 
-function screenToWorld(
-  screenX: number,
-  screenY: number,
-): { x: number; y: number } {
-  const camera = getCameraPosition(getLocalPlayer());
-  return {
-    x: clamp(screenX + camera.x, 0, bounds.width),
-    y: clamp(screenY + camera.y, 0, bounds.height),
-  };
+/**
+ * Function to handle incoming messages from the server.
+ * Updating the local game state based on the message type (e.g., join acknowledgment, game state updates, player disconnections, and player deaths). 
+ * It also handles errors by logging them to the console.
+ * @param data incoming message data from the server
+ * @returns void
+ */
+function handleServerMessage(data: IncomingMessage): void {
+  if (data.type === "joinAck") {
+    setMyPlayerId(data.playerId);
+    applySnapshot(data.state, data.bounds);
+    return;
+  }
+
+  if (data.type === "gameState") {
+    applySnapshot(data.state, data.bounds);
+    return;
+  }
+
+  if (data.type === "playerDisconnect") {
+    removePlayerById(data.playerId);
+    return;
+  }
+
+  if (data.type === "playerDead") {
+    ws?.close();
+    resetState();
+    canvas.style.display = "none";
+    menu.style.display = "flex";
+    alert("¡Has muerto! Puedes elegir nombre y color para volver a jugar.");
+    return;
+  }
+
+  if (data.type === "error") {
+    console.error("Server error:", data.message);
+  }
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
+// Set up the user interface and start the game loop
+setupUI((name: string, color: string) => {
+  connectAndJoin(name, color, handleServerMessage);
+});
+
+// Initial canvas setup and event listeners
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+/**
+ * Function to continuously render the game state on the canvas using requestAnimationFrame for smooth animations. 
+ */
+function renderLoop(): void {
+  draw(ctx, canvas);
+  requestAnimationFrame(renderLoop);
 }
+renderLoop();
 
-draw();
-
-canvas.addEventListener("mousemove", (event) => {
+canvas.addEventListener("mousemove", (event: MouseEvent) => {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     return;
   }
 
-  const worldTarget = screenToWorld(event.clientX, event.clientY);
+  const me = getLocalPlayer();
+  const camera = getCameraPosition(me);
+  const worldTarget = screenToWorld(event.clientX, event.clientY, camera, bounds);
 
   ws.send(
     JSON.stringify({

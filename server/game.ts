@@ -1,3 +1,12 @@
+import { gameConfig } from "./game-config.js";
+import {
+  canConsume,
+  clamp,
+  distanceBetween,
+  growRadius,
+  pickRandom,
+  randomBetween,
+} from "./game-physics.js";
 import { Food, GameState, Player, WorldBounds } from "./types.js";
 import { createId } from "./utils.js";
 
@@ -6,50 +15,47 @@ interface PlayerTarget {
   y: number;
 }
 
-const DEFAULT_BOUNDS: WorldBounds = {
-  width: 3000,
-  height: 3000,
-};
-
-const FOOD_TARGET_COUNT = 250;
-const FOOD_SIZE_MIN = 3;
-const FOOD_SIZE_MAX = 7;
-const PLAYER_INITIAL_SIZE = 24;
-const BASE_PLAYER_SPEED = 320;
-const MIN_PLAYER_SPEED = 70;
-const PLAYER_EAT_MULTIPLIER = 1.12;
-const MAX_RESPAWN_ATTEMPTS = 20;
-
-const FOOD_COLORS = ["#8bd450", "#f0d95c", "#63d2ff", "#ff8fb1", "#ffb347"];
-const PLAYER_COLORS = ["#2ec4b6", "#f25f5c", "#ffe066", "#247ba0", "#70c1b3"];
-
 export class GameEngine {
   private readonly players = new Map<string, Player>();
   private readonly food = new Map<string, Food>();
   private readonly playerTargets = new Map<string, PlayerTarget>();
   private tick = 0;
 
-  constructor(private readonly bounds: WorldBounds = DEFAULT_BOUNDS) {
+  constructor(private readonly bounds: WorldBounds = gameConfig.bounds) {
     this.replenishFood();
   }
 
+  /**
+   * Gets the boundaries of the game world.
+   * @returns The world boundaries.
+   */
   getBounds(): WorldBounds {
     return { ...this.bounds };
   }
 
+  /**
+   * Gets the current tick count (number of game updates that have occurred).
+   * @returns number - The current tick count.
+   */
   getTick(): number {
     return this.tick;
   }
 
+  /**
+   * Adds a new player to the game with the specified ID, name, and color. The player is spawned at a random location that does not overlap with existing players. The player's initial size is determined by the game configuration. The method returns the newly created player object.
+   * @param id string - The unique identifier for the player.
+   * @param name string - The display name of the player.
+   * @param color string - The color representing the player in the game.
+   * @returns Player - The newly created player object with its initial properties set.
+   */
   addPlayer(id: string, name: string, color: string): Player {
-    const spawn = this.findSpawnPoint(PLAYER_INITIAL_SIZE);
+    const spawn = this.findSpawnPoint(gameConfig.player.initialSize);
     const player: Player = {
       id,
       x: spawn.x,
       y: spawn.y,
-      size: PLAYER_INITIAL_SIZE,
+      size: gameConfig.player.initialSize,
       color,
-      // @ts-ignore: name no está en Player, pero lo agregamos para mostrarlo
       name,
     };
 
@@ -58,11 +64,23 @@ export class GameEngine {
     return { ...player };
   }
 
+  /**
+   * Removes a player from the game based on their unique identifier. This method deletes the player's data from the internal storage and also removes any target information associated with that player. It returns a boolean value indicating whether the player was successfully removed (true) or if the player was not found (false).
+   * @param id string - The unique identifier of the player to be removed.
+   * @returns boolean - True if the player was successfully removed, false if the player was not found.
+   */
   removePlayer(id: string): boolean {
     this.playerTargets.delete(id);
     return this.players.delete(id);
   }
 
+  /**
+   * Sets the target position for a player based on their unique identifier.
+   * @param id string - The unique identifier of the player.
+   * @param targetX number - The x-coordinate of the target position.
+   * @param targetY number - The y-coordinate of the target position.
+   * @returns void
+   */
   setPlayerTarget(id: string, targetX: number, targetY: number): void {
     if (!this.players.has(id)) {
       return;
@@ -74,6 +92,11 @@ export class GameEngine {
     });
   }
 
+  /**
+   * Updates the game state based on the elapsed time.
+   * @param deltaMs number - The elapsed time in milliseconds.
+   * @returns string[] - An array of player IDs that were eliminated.
+   */
   update(deltaMs: number): string[] {
     this.tick += 1;
     const deltaSeconds = Math.max(0, deltaMs / 1000);
@@ -85,6 +108,10 @@ export class GameEngine {
     return eliminated;
   }
 
+  /**
+   * Gets the current state of the game.
+   * @returns GameState - The current game state.
+   */
   getState(): GameState {
     return {
       players: [...this.players.values()].map((player) => ({ ...player })),
@@ -92,6 +119,11 @@ export class GameEngine {
     };
   }
 
+  /**
+   * Moves all players towards their respective target positions based on their speed and the elapsed time since the last update. The speed of each player is determined by the game configuration and is affected by the player's size (larger players move slower). The method ensures that players do not move outside the boundaries of the game world.
+   * @param deltaSeconds number - The elapsed time in seconds since the last update.
+   * @returns void
+   */
   private movePlayers(deltaSeconds: number): void {
     for (const player of this.players.values()) {
       const target = this.playerTargets.get(player.id);
@@ -107,8 +139,9 @@ export class GameEngine {
       }
 
       const speed = Math.max(
-        MIN_PLAYER_SPEED,
-        BASE_PLAYER_SPEED / Math.sqrt(player.size / PLAYER_INITIAL_SIZE),
+        gameConfig.player.minSpeed,
+        gameConfig.player.baseSpeed /
+          Math.sqrt(player.size / gameConfig.player.initialSize),
       );
       const maxTravel = speed * deltaSeconds;
       const ratio = Math.min(1, maxTravel / distance);
@@ -126,6 +159,10 @@ export class GameEngine {
     }
   }
 
+  /**
+   * Resolves collisions between players and food items. If a player can consume a food item (determined by the canConsume function), the player's size is increased based on the growRadius function, and the food item is removed from the game. This method iterates through all players and food items to check for collisions and applies the necessary updates to the game state.
+   * @returns void
+   */
   private resolveFoodCollisions(): void {
     for (const player of this.players.values()) {
       for (const foodItem of this.food.values()) {
@@ -139,6 +176,10 @@ export class GameEngine {
     }
   }
 
+  /**
+   * Resolves collisions between players. If a player is large enough to consume another player, the larger player's size is increased and the smaller player is eliminated.
+   * @returns string[] - An array of player IDs that were eliminated.
+   */
   private resolvePlayerCollisions(): string[] {
     const players = [...this.players.values()];
     const consumed = new Set<string>();
@@ -158,7 +199,7 @@ export class GameEngine {
         const eater = a.size >= b.size ? a : b;
         const prey = eater.id === a.id ? b : a;
 
-        if (eater.size < prey.size * PLAYER_EAT_MULTIPLIER) {
+        if (eater.size < prey.size * gameConfig.player.eatMultiplier) {
           continue;
         }
 
@@ -178,23 +219,32 @@ export class GameEngine {
     return Array.from(consumed);
   }
 
+  /**
+   * Replenishes the food supply in the game world.
+   * @returns void
+   */
   private replenishFood(): void {
-    while (this.food.size < FOOD_TARGET_COUNT) {
-      const size = randomBetween(FOOD_SIZE_MIN, FOOD_SIZE_MAX);
+    while (this.food.size < gameConfig.food.targetCount) {
+      const size = randomBetween(gameConfig.food.sizeMin, gameConfig.food.sizeMax);
       const position = this.findSpawnPoint(size);
       const item: Food = {
         id: createId("food"),
         x: position.x,
         y: position.y,
         size,
-        color: pickRandom(FOOD_COLORS),
+        color: pickRandom(gameConfig.food.colors),
       };
       this.food.set(item.id, item);
     }
   }
 
+  /**
+   * Finds a valid spawn point for a new food item, ensuring it does not overlap with any existing players.
+   * @param size number - The size of the food item to be spawned, which is used to determine the minimum distance from players to avoid overlap. 
+   * @returns { x: number; y: number } - The coordinates of the valid spawn point.
+   */
   private findSpawnPoint(size: number): { x: number; y: number } {
-    for (let attempts = 0; attempts < MAX_RESPAWN_ATTEMPTS; attempts += 1) {
+    for (let attempts = 0; attempts < gameConfig.spawn.maxRespawnAttempts; attempts += 1) {
       const x = randomBetween(size, this.bounds.width - size);
       const y = randomBetween(size, this.bounds.height - size);
 
@@ -213,37 +263,4 @@ export class GameEngine {
       y: randomBetween(size, this.bounds.height - size),
     };
   }
-}
-
-function canConsume(
-  a: { x: number; y: number; size: number },
-  b: { x: number; y: number; size: number },
-): boolean {
-  const distance = distanceBetween(a.x, a.y, b.x, b.y);
-  return distance <= Math.max(0, a.size - b.size * 0.3);
-}
-
-function growRadius(currentSize: number, eatenSize: number): number {
-  return Math.sqrt(currentSize ** 2 + eatenSize ** 2);
-}
-
-function distanceBetween(
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-): number {
-  return Math.hypot(ax - bx, ay - by);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function randomBetween(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function pickRandom<T>(values: T[]): T {
-  return values[Math.floor(Math.random() * values.length)] as T;
 }
